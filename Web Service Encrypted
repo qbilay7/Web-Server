@@ -1,0 +1,95 @@
+import javax.crypto.EncryptedPrivateKeyInfo;
+import javax.net.ssl.*;
+import java.io.InputStreamReader;
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpHandler;
+import com.sun.net.httpserver.HttpsConfigurator;
+import com.sun.net.httpserver.HttpsServer;
+import java.io.InputStream;
+import java.net.InetSocketAddress;
+import java.security.Key;
+import java.security.KeyStore;
+
+public class WebServiceE {
+    public static void main(String[] args) throws IOException {
+        // Create SSL context
+        SSLContext sslContext = createSSLContext();
+
+        // Create HTTPS server on port 443 with encryption
+        HttpsServer server = HttpsServer.create(new InetSocketAddress(443), 0);
+        server.setHttpsConfigurator(new HttpsConfigurator(sslContext));
+        server.start();
+
+        System.out.println("Encrypted server running on port 443");
+    }
+
+    private static SSLContext createSSLContext() {
+        try {
+            // Load keystore
+            char[] password = "password".toCharArray();
+            KeyStore keyStore = KeyStore.getInstance("JKS");
+            FileInputStream fileInputStream = new FileInputStream("/Users/kubil/Desktop/keystore.jks");
+            keyStore.load(fileInputStream, password);
+
+            // Create key manager factory
+            KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance("SunX509");
+            keyManagerFactory.init(keyStore, password);
+
+            // Create SSL context
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(keyManagerFactory.getKeyManagers(), null, null);
+
+            return sslContext;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    public static int fibonacci(int n) {
+        if (n == 1) {
+            return 0;
+        } else if (n == 2 || n == 3) {
+            return 1;
+        }
+        int tm = 0;
+        int temp = 2;
+        int one = 1;
+        int count = 0;
+        while (count != n - 4) {
+            tm = temp;
+            temp = one + temp;
+            one = tm;
+            count++;
+        }
+
+        return temp;
+    }
+
+    public static String reverseString(String input) {
+        StringBuilder reversed = new StringBuilder();
+
+        for (int i = input.length() - 1; i >= 0; i--) {
+            reversed.append(input.charAt(i));
+        }
+
+        return reversed.toString();
+    }
+
+    public String loadClientHTML() throws IOException {
+        StringBuilder htmlContent = new StringBuilder();
+        BufferedReader reader = new BufferedReader(
+                new InputStreamReader(getClass().getResourceAsStream("client.html")));
+        String line;
+        while ((line = reader.readLine()) != null) {
+            htmlContent.append(line);
+        }
+        reader.close();
+        return htmlContent.toString();
+    }
+}
