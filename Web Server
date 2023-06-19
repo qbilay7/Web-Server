@@ -1,0 +1,71 @@
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.InetSocketAddress;
+import java.io.InputStream;
+import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpHandler;
+import com.sun.net.httpserver.HttpServer;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.util.Scanner;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+
+public class WebServer {
+    public static void main(String[] args) throws IOException {
+        // Create HTTP server on port 900 without encryption
+        HttpServer server = HttpServer.create(new InetSocketAddress(900), 0);
+        server.createContext("/", new MyHandler());
+        server.start();
+
+        System.out.println("WebServer running on port 900 (no encryption)");
+    }
+
+    static class MyHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            String requestMethod = exchange.getRequestMethod();
+            if (requestMethod.equalsIgnoreCase("GET")) {
+                // Load the client.html file
+                WebService w = new WebService();
+                String response = w.loadClientHTML();
+
+                exchange.sendResponseHeaders(200, response.length());
+                OutputStream outputStream = exchange.getResponseBody();
+                outputStream.write(response.getBytes());
+                outputStream.close();
+            }
+
+            else if (exchange.getRequestMethod().equalsIgnoreCase("POST")) {
+                String response = null;
+                int statusCode = 0;
+
+                BufferedReader reader = new BufferedReader(new InputStreamReader(exchange.getRequestBody()));
+                String requestBody = reader.readLine();
+                String[] requestParts = requestBody.split(" ");
+
+                if (requestParts.length != 2) {
+                    response = "Invalid request. Please send 'reverse <word>' to get the reverse of a word.";
+                    statusCode = 400;
+                } else if (requestParts[0].equals("reverse")) {
+                    String word = requestParts[1];
+                    String reversedWord = WebService.reverseString(word);
+                    response = "Reverse of '" + word + "' is '" + reversedWord + "'.";
+                    statusCode = 200;
+                } else if (requestParts[0].equals("fibonacci")) {
+                    String wd = requestParts[1];
+                    int number = WebService.fibonacci(Integer.parseInt(wd));
+                    response = "nth Fibonacci number is " + number + ".";
+                    statusCode = 200;
+                }
+
+                exchange.sendResponseHeaders(statusCode, response.length());
+                OutputStream outputStream = exchange.getResponseBody();
+                outputStream.write(response.getBytes());
+                outputStream.close();
+
+            }
+        }
+
+    }
+}
