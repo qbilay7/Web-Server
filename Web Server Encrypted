@@ -1,0 +1,102 @@
+import javax.crypto.EncryptedPrivateKeyInfo;
+import javax.net.ssl.*;
+import java.io.IOException;
+import java.io.OutputStream;
+import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpHandler;
+import com.sun.net.httpserver.HttpsConfigurator;
+import com.sun.net.httpserver.HttpsServer;
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.InputStreamReader;
+import java.io.InputStream;
+import java.net.InetSocketAddress;
+import java.security.Key;
+import java.security.KeyStore;
+
+public class WebServerE {
+    public static void main(String[] args) throws IOException {
+        // Create SSL context
+        SSLContext sslContext = createSSLContext();
+
+        // Create HTTPS server on port 901 with encryption
+        HttpsServer server = HttpsServer.create(new InetSocketAddress(901), 0);
+        server.setHttpsConfigurator(new HttpsConfigurator(sslContext));
+        server.createContext("/", new MyHandler());
+        server.start();
+
+        System.out.println("Encrypted server running on port 901");
+    }
+
+    private static SSLContext createSSLContext() {
+        try {
+            // Load keystore
+            char[] password = "password".toCharArray();
+            KeyStore keyStore = KeyStore.getInstance("JKS");
+            FileInputStream fileInputStream = new FileInputStream("/Users/kubil/Desktop/keystore.jks");
+            keyStore.load(fileInputStream, password);
+
+            // Create key manager factory
+            KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance("SunX509");
+            keyManagerFactory.init(keyStore, password);
+
+            // Create SSL context
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(keyManagerFactory.getKeyManagers(), null, null);
+
+            return sslContext;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    static class MyHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            String requestMethod = exchange.getRequestMethod();
+            if (requestMethod.equalsIgnoreCase("GET")) {
+                // Load the client.html file
+                WebServiceE w = new WebServiceE();
+                String response = w.loadClientHTML();
+
+                exchange.sendResponseHeaders(200, response.length());
+                OutputStream outputStream = exchange.getResponseBody();
+                outputStream.write(response.getBytes());
+                outputStream.close();
+            }
+
+            if (exchange.getRequestMethod().equalsIgnoreCase("POST")) {
+                String response = null;
+                int statusCode = 0;
+
+                BufferedReader reader = new BufferedReader(new InputStreamReader(exchange.getRequestBody()));
+                String requestBody = reader.readLine();
+                String[] requestParts = requestBody.split(" ");
+
+                if (requestParts.length != 2) {
+                    response = "Invalid request. Please send 'reverse <word>' to get the reverse of a word.";
+                    statusCode = 400;
+                } else if (requestParts[0].equals("reverse")) {
+                    String word = requestParts[1];
+                    String reversedWord = WebServiceE.reverseString(word);
+                    response = "Reverse of '" + word + "' is '" + reversedWord + "'.";
+                    statusCode = 200;
+                } else if (requestParts[0].equals("fibonacci")) {
+                    String wd = requestParts[1];
+                    int number = WebServiceE.fibonacci(Integer.parseInt(wd));
+                    response = "nth Fibonacci number is " + number + ".";
+                    statusCode = 200;
+                }
+
+                exchange.sendResponseHeaders(statusCode, response.length());
+                OutputStream outputStream = exchange.getResponseBody();
+                outputStream.write(response.getBytes());
+                outputStream.close();
+
+            }
+        }
+
+    }
+}
