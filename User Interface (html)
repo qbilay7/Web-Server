@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Client</title>
+</head>
+<body>
+    <h1>Send Request</h1>
+    <form id="requestForm">
+        <label for="requestType">Request Type:</label>
+        <select id="requestType">
+            <option value="reverse">Reverse</option>
+            <option value="fibonacci">Fibonacci</option>
+        </select>
+        <br>
+        <label for="inputValue">Input Value:</label>
+        <input type="text" id="inputValue">
+        <br>
+        <input type="submit" value="Send Request">
+    </form>
+    <h1>Response</h1>
+    <div id="response"></div>
+
+    <script>
+        const form = document.getElementById('requestForm');
+        const responseDiv = document.getElementById('response');
+
+        form.addEventListener('submit', function (event) {
+            event.preventDefault();
+            const requestType = document.getElementById('requestType').value;
+            const inputValue = document.getElementById('inputValue').value;
+            const data = `${requestType} ${inputValue}`;
+
+            fetch('/', {
+                method: 'POST',
+                body: data
+            })
+            .then(response => response.text())
+            .then(result => {
+                responseDiv.textContent = result;
+            })
+            .catch(error => {
+                responseDiv.textContent = 'An error occurred.';
+                console.error(error);
+            });
+        });
+    </script>
+</body>
+</html>
